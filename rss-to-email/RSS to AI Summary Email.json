@@ -1,0 +1,189 @@
+{
+  "name": "RSS to AI Summary Email",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fdaaa7f5-f865-4dac-b441-baafb5ed9526",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://www.nasa.gov/feed/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "e3dca5c8-05ff-4335-b96d-e86700b9850a",
+      "name": "RSS Read"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-3-flash-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Summarize the following news article in 3 short bullet points, written in plain simple English:\n\n{{ $json[\"content:encoded\"] }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        48
+      ],
+      "id": "671f200c-e122-4552-b272-bc84b1eaf4d5",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "JuCP5ehB0hZV5n02",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "4fbf1bea-6a14-4541-90dc-06a34adc845e",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "sendTo": "aminaouabel0@gmail.com",
+        "subject": "=Article Summary: {{ $('RSS Read').item.json.title }}",
+        "message": "={{ $json.content.parts[0].text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        48
+      ],
+      "id": "94ee0636-f925-416b-93d5-def6737290f5",
+      "name": "Send a message",
+      "webhookId": "47ed4ee2-4e38-42a6-9b9c-b7bd43ecf28c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "U3rodJmb5irycCxw",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        928,
+        192
+      ],
+      "id": "549f2d98-b23d-43db-92cd-3105281dc22b",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "748d9588-22c9-42b3-b159-dfa26b560a0d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8fddccece946048fddced3e8542f3715a883ea02a84cb0227661dc25c6626b50"
+  },
+  "nodeGroups": [],
+  "id": "Vqr7p5p27kW5YSvs",
+  "tags": []
+}
