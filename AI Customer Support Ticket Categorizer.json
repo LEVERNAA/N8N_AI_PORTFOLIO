@@ -1,0 +1,313 @@
+{
+  "name": "AI Customer Support Ticket Categorizer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ticket-intake",
+        "options": {
+          "responseCode": {
+            "values": {}
+          }
+        }
+      },
+      "id": "940e98cc-8c0e-4c8c-ae43-f098da81ac0c",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "16e1cb6e-7ab5-497e-823b-a2d1382c6ad8"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "openai/gpt-oss-20b",
+          "mode": "list"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a customer support ticket classifier. You will receive a customer's name, email, and message. Analyze the message and respond ONLY with valid JSON in this exact structure, with no extra text, no markdown formatting, and no code fences:\n\n{\n  \"category\": \"Billing\" | \"Technical\" | \"General\",\n  \"urgency\": \"High\" | \"Medium\" | \"Low\",\n  \"draft_response\": \"a polite, helpful 2-3 sentence draft reply to the customer\"\n}\n\nRules:\n- \"category\" must be exactly one of: Billing, Technical, General.\n- \"urgency\" must be exactly one of: High, Medium, Low.\n- Mark urgency as High only if the customer indicates account lockout, payment failure blocking access, security issue, or explicit urgency.\n- \"draft_response\" must directly address the customer's specific message content."
+            },
+            {
+              "content": "={{ $json.body.name }} ({{ $json.body.email }}) wrote: {{ $json.body.message }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "store": false
+        }
+      },
+      "id": "b67d0940-70fe-4e13-af38-75082aef8129",
+      "name": "Message a model",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "RDkZw8lfFQCdsAuL",
+          "name": "Groq API."
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output[0].content[0].text;\nconst parsed = JSON.parse(raw);\n\nreturn [\n  {\n    json: {\n      name: $('Webhook').item.json.body.name,\n      email: $('Webhook').item.json.body.email,\n      message: $('Webhook').item.json.body.message,\n      category: parsed.category,\n      urgency: parsed.urgency,\n      draft_response: parsed.draft_response\n    }\n  }\n];"
+      },
+      "id": "2797aac5-e435-4fc5-b9e5-40c33efd423e",
+      "name": "Code in JavaScript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1rvZK1harp6i92-fmvzeEtPXB9KOHHloSWGjuIsaBPZM/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Feuille 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rvZK1harp6i92-fmvzeEtPXB9KOHHloSWGjuIsaBPZM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.name }}",
+            "Email": "={{ $json.email }}",
+            "Message": "={{ $json.message }}",
+            "Category": "={{ $json.category }}",
+            "Urgency": "={{ $json.urgency }}",
+            "Draft Response": "={{ $json.draft_response }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Urgency",
+              "displayName": "Urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Draft Response",
+              "displayName": "Draft Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "498ddbfc-264e-4b79-b993-99c98f25947d",
+      "name": "Append row in sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        816,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ei9gffOACqaoeELU",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7f8d6dd9-5ed6-4007-8a05-33bd4e2ec674",
+              "leftValue": "={{ $json.Urgency }}",
+              "rightValue": "High",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "76ac1f39-c5f2-4ac3-a1e2-7536034a624a",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        944,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "aminaouabel0@gmail.com",
+        "subject": "={{ \"🚨 HIGH URGENCY Ticket: \" + $json[\"Name\"] }}",
+        "emailType": "text",
+        "message": "={{ \"New HIGH urgency support ticket received.\\n\\nName: \" + $json[\"Name\"] + \"\\nEmail: \" + $json[\"Email\"] + \"\\nCategory: \" + $json[\"Category\"] + \"\\n\\nOriginal Message:\\n\" + $json[\"Message\"] + \"\\n\\nSuggested Draft Reply:\\n\" + $json[\"Draft Response\"] }}",
+        "options": {}
+      },
+      "id": "490153a6-eccb-4976-a1c2-aa8e52dbf1c8",
+      "name": "Send a message",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        -128
+      ],
+      "webhookId": "9fef991b-e52e-44c6-92c4-0a5b631df5d8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "U3rodJmb5irycCxw",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ff1b95f1-035f-46e9-917b-374507ac8fbe",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8fddccece946048fddced3e8542f3715a883ea02a84cb0227661dc25c6626b50"
+  },
+  "nodeGroups": [],
+  "id": "neQvd6sQrWElGnYV",
+  "tags": []
+}
